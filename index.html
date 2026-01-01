@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正在重定向...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-top: 20px;
+            opacity: 0.9;
+        }
+        
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .success {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="status">正在打开应用...</h2>
+        <div class="spinner" id="spinner"></div>
+        <p id="message">如果应用没有自动打开，请手动打开 Qadam 应用</p>
+    </div>
+    
+    <script>
+        (function() {
+            // 从 URL 参数中提取 token 和 type
+            const urlParams = new URLSearchParams(window.location.search);
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            
+            // 尝试从多个位置获取 token
+            const token = urlParams.get('access_token') || 
+                         urlParams.get('token') || 
+                         hashParams.get('access_token') || 
+                         hashParams.get('token');
+            
+            // 尝试从多个位置获取 type
+            const type = urlParams.get('type') || 
+                        hashParams.get('type') || 
+                        'recovery';
+            
+            const statusEl = document.getElementById('status');
+            const messageEl = document.getElementById('message');
+            const spinnerEl = document.getElementById('spinner');
+            
+            if (token) {
+                // 构建深度链接
+                const deepLink = `qadam://reset-password#access_token=${encodeURIComponent(token)}&type=${encodeURIComponent(type)}`;
+                
+                console.log('Redirecting to:', deepLink);
+                
+                // 立即尝试打开深度链接
+                window.location.href = deepLink;
+                
+                // 如果 2 秒后还没有打开应用，显示提示
+                setTimeout(() => {
+                    spinnerEl.style.display = 'none';
+                    statusEl.textContent = '无法自动打开应用';
+                    statusEl.className = 'error';
+                    messageEl.innerHTML = `
+                        请手动打开 Qadam 应用<br>
+                        <small style="opacity: 0.7; font-size: 14px; margin-top: 10px; display: block;">
+                            如果问题持续，请重新请求密码重置
+                        </small>
+                    `;
+                }, 2000);
+                
+                // 如果 5 秒后仍然在页面，显示更多帮助
+                setTimeout(() => {
+                    if (document.getElementById('status').textContent === '无法自动打开应用') {
+                        messageEl.innerHTML += `
+                            <br><br>
+                            <small style="opacity: 0.7; font-size: 12px;">
+                                提示：请确保已安装 Qadam 应用
+                            </small>
+                        `;
+                    }
+                }, 5000);
+            } else {
+                // 如果没有 token，显示错误
+                spinnerEl.style.display = 'none';
+                statusEl.textContent = '无效的重置链接';
+                statusEl.className = 'error';
+                messageEl.innerHTML = `
+                    重置链接无效或已过期<br>
+                    <small style="opacity: 0.7; font-size: 14px; margin-top: 10px; display: block;">
+                        请重新请求密码重置
+                    </small>
+                `;
+                
+                console.error('No token found in URL');
+                console.log('URL params:', Object.fromEntries(urlParams));
+                console.log('Hash params:', Object.fromEntries(hashParams));
+            }
+        })();
+    </script>
+</body>
+</html>
+
